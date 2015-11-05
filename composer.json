@@ -22,7 +22,7 @@
   },
   "autoload"         : {
     "psr-4": {
-      "ViKon\\Menu\\": "src/ViKon/DbLog"
+      "ViKon\\DbLog\\": "src/ViKon/DbLog"
     }
   },
   "minimum-stability": "stable"
