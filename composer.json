@@ -1,0 +1,29 @@
+{
+  "name"             : "vi-kon/laravel-db-log",
+  "description"      : "Database logger for Laravel 5.1",
+  "keywords"         : [
+    "laravel",
+    "menu"
+  ],
+  "authors"          : [
+    {
+      "name" : "Kovács Vince",
+      "email": "vincekovacs@hotmail.com"
+    }
+  ],
+  "require"          : {
+    "php"                 : ">=5.5.9",
+    "monolog/monolog"     : "~1.11",
+    "illuminate/database" : "~5.1",
+    "illuminate/support"  : "~5.1"
+  },
+  "suggest"          : {
+    "vi-kon/laravel-auth": "Allow to use permission licenser"
+  },
+  "autoload"         : {
+    "psr-4": {
+      "ViKon\\Menu\\": "src/ViKon/DbLog"
+    }
+  },
+  "minimum-stability": "stable"
+}
