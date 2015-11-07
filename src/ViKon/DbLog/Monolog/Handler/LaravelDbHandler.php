@@ -3,8 +3,9 @@
 namespace ViKon\DbLog\Monolog\Handler;
 
 use Carbon\Carbon;
-use Illuminate\Database\Connection;
+use Illuminate\Contracts\Container\Container;
 use Monolog\Handler\AbstractProcessingHandler;
+use Monolog\Handler\HandlerInterface;
 use Monolog\Logger;
 use ViKon\DbLog\Model\Log;
 
@@ -17,21 +18,29 @@ use ViKon\DbLog\Model\Log;
  */
 class LaravelDbHandler extends AbstractProcessingHandler
 {
-    /** @var \Illuminate\Database\Connection */
-    protected $connection;
+    /** @type \Illuminate\Contracts\Container\Container */
+    protected $container;
+
+    /** @type \Monolog\Handler\HandlerInterface */
+    protected $fallback;
+
+    /** @type bool */
+    protected $hasError = false;
 
     /**
-     * @param \Illuminate\Database\Connection $connection Database connection from Laravel, where logs are inserted
-     * @param bool|int                        $level      The minimum logging level at which this handler will be
-     *                                                    triggered
-     * @param bool                            $bubble     Whether the messages that are handled can bubble up the stack
-     *                                                    or not
+     * EloquentDbHandler constructor.
+     *
+     * @param \Illuminate\Contracts\Container\Container $container
+     * @param \Monolog\Handler\HandlerInterface         $fallback
+     * @param bool|int                                  $level
+     * @param bool|true                                 $bubble
      */
-    public function __construct(Connection $connection, $level = Logger::DEBUG, $bubble = true)
+    public function __construct(Container $container, HandlerInterface $fallback, $level = Logger::DEBUG, $bubble = true)
     {
-        $this->connection = $connection;
-
         parent::__construct($level, $bubble);
+
+        $this->container = $container;
+        $this->fallback  = $fallback;
     }
 
     /**
@@ -65,22 +74,39 @@ class LaravelDbHandler extends AbstractProcessingHandler
      * Save records into database in batch
      *
      * @param array $records
+     *
+     * @throws \Exception
      */
     protected function save(array $records)
     {
+        if ($this->hasError === true) {
+            $this->fallback->handleBatch($records);
+
+            return;
+        }
+
         $data = [];
         foreach ($records as $record) {
             // ['message', 'context', 'level', 'channel', 'created_at', 'extra'] <= Single row format
             $data[] = [
-                $record['message'],
-                serialize((array)$record['context']),
-                $record['level'],
-                $record['channel'],
-                $record['datetime'] instanceof \DateTime ? Carbon::instance($record['datetime']) : Carbon::now(),
-                serialize((array)$record['extra']),
+                Log::FIELD_MESSAGE    => $record['message'],
+                Log::FIELD_CONTEXT    => serialize((array)$record['context']),
+                Log::FIELD_LEVEL      => Logger::getLevelName($record['level']),
+                Log::FIELD_CHANNEL    => $record['channel'],
+                Log::FIELD_CREATED_AT => $record['datetime'] instanceof \DateTime
+                    ? Carbon::instance($record['datetime'])
+                    : Carbon::now(),
+                Log::FIELD_EXTRA      => serialize((array)$record['extra']),
             ];
         }
 
-        $this->connection->table((new Log())->getTable())->insert($data);
+        try {
+            $this->container->make('db')->connection()->table((new Log())->getTable())->insert($data);
+        } catch (\Exception $ex) {
+            $this->hasError = true;
+            $this->fallback->handleBatch($records);
+
+            throw $ex;
+        }
     }
 }
