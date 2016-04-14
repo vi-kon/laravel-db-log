@@ -2,7 +2,7 @@
 
 namespace ViKon\DbLog\Model;
 
-use ViKon\Auth\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * Class Log
