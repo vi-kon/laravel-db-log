@@ -17,7 +17,9 @@ class CreateLogsTable extends Migration
      */
     public function up()
     {
-        static::$schema->create('logs', function (Blueprint $table) {
+        $schema = app()->make('db')->connection()->getSchemaBuilder();
+
+        $schema->create('logs', function (Blueprint $table) {
             $table->engine = 'InnoDB';
 
             $table->increments('id');
@@ -37,6 +39,8 @@ class CreateLogsTable extends Migration
      */
     public function down()
     {
-        static::$schema->drop('logs');
+        $schema = app()->make('db')->connection()->getSchemaBuilder();
+
+        $schema->drop('logs');
     }
 }
